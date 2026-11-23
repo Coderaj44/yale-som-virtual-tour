@@ -1,19 +1,26 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import Professor, { PROFESSORS } from './Professor.jsx'
+import Zaman from './Zaman.jsx'
+import Schott from './Schott.jsx'
 import { DRUMS, LECTERNS } from './layout.js'
 
-// which Hogwarts professor teaches in which classroom (matches the slide decks)
+// who teaches in which classroom (matches the slide decks). Prof. Zaman (MGT 409, Evans 2200 in the
+// course database) and Prof. Schott (MGT 407 EMBA Statistics) are AI chat avatars; the rest are wizards.
 export const ROOM_PROFESSOR = {
-  2400: 'dumbledore', // MGT 409 AI Foundations for Managers
+  2400: 'dumbledore', // MGT 402 Basics of Accounting
   2410: 'mcgonagall', // MGT 404 Basics of Economics
   2420: 'trelawney', // MGT 403 Probability Modeling & Statistics
   2430: 'slughorn', // MGT 887 Negotiations
-  2200: 'snape', // MGT 402 Basics of Accounting
-  2210: 'lockhart', // MGT 538 Mastering Influence & Persuasion
+  2200: 'zaman', // MGT 409 AI Foundations for Managers (chat with him!)
+  2210: 'schott', // MGT 407 Statistics (EMBA) (chat with him!)
   2220: 'moody', // MGT 800 Crisis Management in Tech
   2230: 'flitwick', // MGT 541 Corporate Finance
 }
+
+// AI chat avatars (everyone else is a wizard from Professor.jsx)
+const AI_NAMES = { zaman: 'Tauhid Zaman', schott: 'Peter Schott' }
+const AI_AVATARS = { zaman: Zaman, schott: Schott }
 
 function plaqueTex(name) {
   const c = document.createElement('canvas')
@@ -44,7 +51,7 @@ export default function Faculty() {
           who,
           pos: [fc[0] + back[0] * 1.15 - t[0] * half * 0.3, 0, fc[1] + back[1] * 1.15 - t[1] * half * 0.3],
           rot,
-          plaque: { p: [lec.x + back[0] * 0.26, 0.85, lec.z + back[1] * 0.26], rot, mat: new THREE.MeshBasicMaterial({ map: plaqueTex(PROFESSORS[who].name) }) },
+          plaque: { p: [lec.x + back[0] * 0.26, 0.85, lec.z + back[1] * 0.26], rot, mat: new THREE.MeshBasicMaterial({ map: plaqueTex(AI_NAMES[who] ?? PROFESSORS[who].name) }) },
         }
       }),
     [],
@@ -53,7 +60,14 @@ export default function Faculty() {
     <>
       {items.map((it, i) => (
         <group key={i}>
-          <Professor who={it.who} position={it.pos} rotation={it.rot} phase={i * 1.7} />
+          {AI_AVATARS[it.who] ? (
+            (() => {
+              const Avatar = AI_AVATARS[it.who]
+              return <Avatar position={it.pos} rotation={it.rot} />
+            })()
+          ) : (
+            <Professor who={it.who} position={it.pos} rotation={it.rot} phase={i * 1.7} />
+          )}
           <mesh position={it.plaque.p} rotation={[0, it.plaque.rot, 0]} material={it.plaque.mat}>
             <planeGeometry args={[0.6, 0.15]} />
           </mesh>

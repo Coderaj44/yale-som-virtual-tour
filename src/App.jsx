@@ -9,6 +9,8 @@ import { EYE, PORTAL, SPAWN } from './layout.js'
 import { onIdentity, presence } from './mvw.js'
 import { setMuted } from './audio.js'
 import { startSong } from './song.js'
+import ChatWindow from './ChatWindow.jsx'
+import { CHAT_PROFS, talk, typing, useTalk } from './talk.js'
 
 export default function App() {
   const [locked, setLocked] = useState(false)
@@ -33,6 +35,16 @@ export default function App() {
     setTouchOn(on)
   }
   const playing = locked || touchOn
+  // AI professor chat: aim + click (or tap) a professor avatar to open it
+  const { aimed, open: chatWith } = useTalk()
+  const closeChat = useCallback(
+    (e) => {
+      talk.close()
+      // closing with the ✕ button is a click, so we can grab the mouse again and keep walking
+      if (e?.type === 'click' && !isTouch && !touchRef.current.active) lockRef.current?.()
+    },
+    [isTouch],
+  )
   // music starts the first time you walk in (browsers need a click first); N or the button mutes it
   const [musicOn, setMusicOn] = useState(true)
   useEffect(() => {
@@ -40,12 +52,12 @@ export default function App() {
   }, [playing])
   useEffect(() => setMuted(!musicOn), [musicOn])
   useEffect(() => {
-    const n = (e) => e.code === 'KeyN' && setMusicOn((v) => !v)
+    const n = (e) => !typing(e) && e.code === 'KeyN' && setMusicOn((v) => !v)
     window.addEventListener('keydown', n)
     return () => window.removeEventListener('keydown', n)
   }, [])
   useEffect(() => {
-    const k = (e) => e.code === 'KeyM' && setShowMap((v) => !v)
+    const k = (e) => !typing(e) && e.code === 'KeyM' && setShowMap((v) => !v)
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [])
@@ -74,10 +86,22 @@ export default function App() {
       <button className="maptoggle" onClick={() => setShowMap((s) => !s)}>
         {showMap ? 'hide map' : 'map'}
       </button>
-      {playing && <div className="crosshair" />}
-      {touchOn && <TouchControls touchRef={touchRef} onPause={() => setTouch(false)} />}
+      {playing && <div className={aimed ? 'crosshair on' : 'crosshair'} />}
+      {playing && aimed && !chatWith && (
+        <button
+          className={touchOn ? 'talkhint tap' : 'talkhint'}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            if (touchOn) talk.open(aimed)
+          }}
+        >
+          {touchOn ? 'Tap' : 'Click'} to chat with {CHAT_PROFS[aimed].short}
+        </button>
+      )}
+      {chatWith && <ChatWindow key={chatWith} profId={chatWith} onClose={closeChat} />}
+      {touchOn && !chatWith && <TouchControls touchRef={touchRef} onPause={() => setTouch(false)} />}
 
-      {!playing && (
+      {!playing && !chatWith && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>
           <div className="card">
             <div className="kicker">Yale SOM · Evans Hall{me?.name ? ` · visiting as ${me.name}` : ''}</div>
